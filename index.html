@@ -8,10 +8,10 @@
         body {
             margin: 0;
             padding: 0;
-            background-color: #f5f6f8; /* 지도가 돋보이는 연한 배경색 */
+            background-color: #f5f6f8; 
         }
 
-        /* 이미지 영역 */
+        /* 이미지 컨테이너 (여기에 지도와 말풍선이 모두 들어갑니다) */
         .image-container {
             position: relative; 
             display: block;
@@ -25,81 +25,72 @@
             display: block; 
         }
 
-        /* 터치 영역 기본 투명 설정 */
+        /* 터치 영역 (부스) */
         .touch-overlay {
             position: absolute;
             box-sizing: border-box;
             background-color: transparent; 
             border: 2px solid transparent; 
             z-index: 10;
-            /* 터치 시 파란색 깜빡임 제거 (모바일 특화) */
             -webkit-tap-highlight-color: transparent; 
         }
         
-        /* 🔴 부스를 터치(클릭)했을 때 유지되는 하이라이트 효과 */
+        /* 부스 터치 시 빨간 테두리 유지 */
         .touch-overlay.active {
             background-color: rgba(255, 0, 0, 0.3);
             border: 2px solid red;
             border-radius: 4px;
         }
 
-        /* 어두운 배경 (팝업 뜰 때 뒤에 깔림) */
-        #popupBackdrop {
-            visibility: hidden;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 9998;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        /* 📱 모바일 바텀시트(Bottom Sheet) 스타일 팝업 */
-        #boothPopup {
-            position: fixed; 
-            bottom: 0; 
-            left: 0; 
-            width: 100%; 
-            background: white; 
-            padding: 30px 20px 40px 20px; 
-            box-sizing: border-box;
-            border-radius: 20px 20px 0 0; /* 위쪽 모서리만 둥글게 */
-            box-shadow: 0 -4px 20px rgba(0,0,0,0.15); 
-            z-index: 9999; 
-            transform: translateY(100%); /* 처음엔 화면 아래로 숨김 */
-            transition: transform 0.3s cubic-bezier(0.1, 0.88, 0.3, 1); /* 부드럽게 튀어오르는 효과 */
+        /* 💬 지도 일체형 말풍선 팝업 스타일 */
+        .tooltip-popup {
+            display: none;
+            position: absolute; /* 화면이 아닌 이미지에 고정되게 하는 핵심 설정! */
+            background: rgba(255, 255, 255, 0.98);
+            border: 2px solid #004b87;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            z-index: 100;
+            width: max-content;
+            max-width: 200px;
             text-align: center;
         }
 
-        /* 팝업이 화면에 나타날 때 부여되는 클래스 */
-        #boothPopup.show {
-            transform: translateY(0);
+        /* 말풍선 아래쪽 뾰족한 꼬리 */
+        .tooltip-popup::after {
+            content: '';
+            position: absolute;
+            bottom: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 10px 10px 0;
+            border-style: solid;
+            border-color: #004b87 transparent transparent transparent;
         }
 
-        /* 바텀시트 상단 장식용 작은 바 (끌어내리는 느낌) */
-        .drag-handle {
-            width: 40px;
-            height: 5px;
-            background: #ddd;
-            border-radius: 3px;
-            margin: -15px auto 20px auto;
+        /* 부스가 화면 맨 위에 있을 때 말풍선 꼬리 방향 반전 */
+        .tooltip-popup.flipped::after {
+            top: -12px;
+            bottom: auto;
+            border-width: 0 10px 10px;
+            border-color: transparent transparent #004b87 transparent;
         }
 
-        #popupTitle { margin-top: 0; color: #333; font-size: 24px; font-weight: 900;}
-        #popupCompany { color: #0056b3; font-size: 16px; margin: 10px 0; }
-        #popupDesc { color: #666; line-height: 1.6; font-size: 15px; margin-bottom: 20px;}
-        
-        .close-btn {
-            width: 100%;
-            padding: 15px 0; 
-            background: #004b87; 
-            color: white; 
-            border: none; 
-            border-radius: 10px; 
-            font-size: 16px;
+        /* 닫기 (X) 버튼 */
+        .close-x {
+            position: absolute;
+            top: 5px;
+            right: 10px;
+            font-size: 20px;
             font-weight: bold;
+            color: #999;
             cursor: pointer;
         }
+
+        #popupTitle { margin: 8px 0 5px 0; color: #333; font-size: 16px; font-weight: 900; }
+        #popupCompany { color: #0056b3; font-size: 13px; margin: 0 0 8px 0; }
+        #popupDesc { color: #666; font-size: 12px; margin: 0; line-height: 1.4; word-break: keep-all; }
     </style>
 </head>
 <body>
@@ -107,6 +98,13 @@
 <div class="image-container" id="mapContainer">
     <img src="map.png" id="boothMap" alt="2026 K-MEX 부스배치도">
     
+    <div id="boothPopup" class="tooltip-popup">
+        <div class="close-x" onclick="closePopup()">✕</div>
+        <h2 id="popupTitle">부스명</h2>
+        <h3 id="popupCompany">세부 분류</h3>
+        <p id="popupDesc">상세 설명</p>
+    </div>
+
     <map id="dataMap" style="display: none;">
         <area alt="Room A&B" title="Room A&B" href="#" coords="441,1144,133,453" shape="rect" onclick="openPopup('Room A&B', '등록 예정', '등록 예정')">
         <area alt="Room C" title="Room C" href="#" coords="788,432,479,106" shape="rect" onclick="openPopup('Room C', '등록 예정', '등록 예정')">
@@ -243,18 +241,8 @@
     </map>
 </div>
 
-<div id="popupBackdrop" onclick="closePopup()"></div>
-
-<div id="boothPopup">
-  <div class="drag-handle"></div>
-  <h2 id="popupTitle">부스명</h2>
-  <h3 id="popupCompany">세부 분류</h3>
-  <p id="popupDesc">여기에 상세 설명이 들어갑니다.</p>
-  <button class="close-btn" onclick="closePopup()">닫기</button>
-</div>
-
 <script>
-  let activeOverlay = null; // 현재 선택된 부스를 기억하는 변수
+  let activeOverlay = null; // 현재 터치한 부스 기록
 
   window.addEventListener('load', function() {
       const img = document.getElementById('boothMap');
@@ -289,22 +277,41 @@
           overlay.style.width = widthPercent + '%';
           overlay.style.height = heightPercent + '%';
 
+          // 부스를 터치했을 때의 기능
           const clickFunction = area.getAttribute('onclick');
           if (clickFunction) {
-              // 모바일 환경을 고려한 터치 이벤트 추가
               overlay.addEventListener('click', function(e) {
                   e.preventDefault();
                   
-                  // 이전에 선택된 부스의 하이라이트 지우기
+                  // 다른 부스 테두리 끄기
                   if (activeOverlay) {
                       activeOverlay.classList.remove('active');
                   }
-                  
-                  // 방금 누른 부스에 하이라이트(빨간테두리) 주기
+                  // 터치한 부스 테두리 켜기
                   overlay.classList.add('active');
                   activeOverlay = overlay;
 
-                  // 팝업 띄우기 함수 실행
+                  // 📌 팝업 위치를 터치한 부스 근처로 계산 (말풍선 기능의 핵심!)
+                  const popup = document.getElementById('boothPopup');
+                  let attachX = leftPercent + (widthPercent / 2);
+                  let attachY = topPercent;
+
+                  // 부스가 맨 위쪽에 있으면 말풍선을 아래로 내림 (잘림 방지)
+                  if (topPercent < 15) {
+                      popup.style.top = (topPercent + heightPercent) + '%';
+                      popup.style.left = attachX + '%';
+                      popup.style.transform = 'translate(-50%, 0)';
+                      popup.style.marginTop = '15px';
+                      popup.classList.add('flipped'); // 꼬리 방향 반전
+                  } else {
+                      popup.style.top = attachY + '%';
+                      popup.style.left = attachX + '%';
+                      popup.style.transform = 'translate(-50%, -100%)';
+                      popup.style.marginTop = '-15px';
+                      popup.classList.remove('flipped');
+                  }
+
+                  // 팝업 내용 채우기 실행
                   new Function(clickFunction)(); 
               });
           }
@@ -313,28 +320,17 @@
       });
   });
 
-  // 팝업 열기 (바텀시트가 위로 올라옴)
-  function openPopup(areaId, subtitle, description) {
-    document.getElementById('popupTitle').innerText = areaId;
+  // 팝업 열기
+  function openPopup(title, subtitle, description) {
+    document.getElementById('popupTitle').innerText = title;
     document.getElementById('popupCompany').innerText = subtitle;
     document.getElementById('popupDesc').innerText = description;
-    
-    document.getElementById('popupBackdrop').style.visibility = 'visible';
-    document.getElementById('popupBackdrop').style.opacity = '1';
-    document.getElementById('boothPopup').classList.add('show');
+    document.getElementById('boothPopup').style.display = 'block';
   }
 
-  // 팝업 닫기 (바텀시트가 아래로 내려감)
+  // 팝업 닫기
   function closePopup() {
-    document.getElementById('boothPopup').classList.remove('show');
-    document.getElementById('popupBackdrop').style.opacity = '0';
-    
-    // 애니메이션이 끝난 후 완전히 숨김
-    setTimeout(() => {
-        document.getElementById('popupBackdrop').style.visibility = 'hidden';
-    }, 300);
-
-    // 선택된 부스 하이라이트 끄기
+    document.getElementById('boothPopup').style.display = 'none';
     if (activeOverlay) {
         activeOverlay.classList.remove('active');
         activeOverlay = null;
