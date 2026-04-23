@@ -605,6 +605,7 @@
     const MAX_SCALE = 6;
     const TAP_DISTANCE = 8;
     const SEARCH_LIMIT = 40;
+    const MOBILE_VERTICAL_PAN_RATIO = 0.32;
 
     const state = {
         x: 0,
@@ -1129,14 +1130,25 @@
         const stageRect = stage.getBoundingClientRect();
         const width = layer.width * state.scale;
         const height = layer.height * state.scale;
+        const verticalPanPadding = getVerticalPanPadding(stageRect.height);
 
         state.x = width <= stageRect.width
             ? (stageRect.width - width) / 2
             : clamp(state.x, stageRect.width - width, 0);
 
-        state.y = height <= stageRect.height
-            ? (stageRect.height - height) / 2
-            : clamp(state.y, stageRect.height - height, 0);
+        state.y = clamp(
+            state.y,
+            stageRect.height - height - verticalPanPadding,
+            verticalPanPadding
+        );
+    }
+
+    function getVerticalPanPadding(stageHeight) {
+        if (!window.matchMedia('(max-width: 700px)').matches) {
+            return 0;
+        }
+
+        return Math.round(stageHeight * MOBILE_VERTICAL_PAN_RATIO);
     }
 
     function applyTransform() {
